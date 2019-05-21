@@ -1,0 +1,128 @@
+/****************************************************************************
+ *          YTLS.H
+ *
+ *          TLS for Yuneta
+ *
+ *          Copyright (c) 2018 Niyamaka.
+ *          All Rights Reserved.
+ ****************************************************************************/
+
+#ifndef _C_YTLS_H
+#define _C_YTLS_H 1
+
+#include <ghelpers.h>
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
+/***************************************************************
+ *              Constants
+ ***************************************************************/
+
+/***************************************************************
+ *              Structures
+ ***************************************************************/
+typedef void * hytls;
+typedef void * hsskt;
+
+typedef struct api_tls_s {
+    const char *name;
+    hytls (*init)(
+        json_t *jn_config,  // not owned
+        BOOL server
+    );
+    void (*cleanup)(hytls ytls);
+    const char * (*version)(hytls ytls);
+    hsskt (*new_secure_filter)(
+        hytls ytls,
+        int (*on_handshake_done_cb)(void *user_data, int error),
+        int (*on_clear_data_cb)(void *user_data, GBUFFER *gbuf, int error),
+        int (*on_encrypted_data_cb)(void *user_data, GBUFFER *gbuf, int error),
+        void *user_data
+    );
+    void (*free_secure_filter)(hsskt sskt);
+    int (*do_handshake)(hsskt sskt); // Must return 1 (done), 0 (in progress), -1 (failure)
+    int (*encrypt_data)(hsskt sskt, GBUFFER *gbuf);
+    int (*decrypt_data)(hsskt sskt, GBUFFER *gbuf);
+    const char * (*get_last_error)(hsskt sskt);
+} api_tls_t;
+
+typedef struct { // Common to all ytls_t types
+    api_tls_t *api_tls;     // HACK must be the first item in the ytls_t structures
+} __ytls_t__;
+
+/***************************************************************
+ *              Prototypes
+ ***************************************************************/
+
+/**rst**
+    Startup tls context
+
+    "library"   library to use, defaul: "openssl"
+    "trace"     True to verbose trace.
+
+**rst**/
+PUBLIC hytls ytls_init(
+    json_t *jn_config,  // not owned
+    BOOL server
+);
+
+/**rst**
+    Cleanup tls context
+**rst**/
+PUBLIC void ytls_cleanup(hytls ytls);
+
+/**rst**
+    Version tls
+**rst**/
+PUBLIC const char * ytls_version(hytls ytls);
+
+/**rst**
+    Get new secure filter
+**rst**/
+PUBLIC hsskt ytls_new_secure_filter(
+    hytls ytls,
+    int (*on_handshake_done_cb)(void *user_data, int error),
+    int (*on_clear_data_cb)(void *user_data, GBUFFER *gbuf, int error),
+    int (*on_encrypted_data_cb)(void *user_data, GBUFFER *gbuf, int error),
+    void *user_data
+);
+/**rst**
+    Free secure filter
+**rst**/
+PUBLIC void ytls_free_secure_filter(hytls ytls, hsskt sskt);
+
+/**rst**
+    Do handshake
+    Return
+        1   (handshake done),
+        0   (handshake in progress),
+        -1  (handshake failure).
+    Callback on_handshake_done_cb will be called once for successfully case, or more for failure case.
+**rst**/
+PUBLIC int ytls_do_handshake(hytls ytls, hsskt sskt);
+
+/**rst**
+    Use this function to encrypt clear data.
+    The encrypted data will be returned in on_encrypted_data_cb callback.
+**rst**/
+PUBLIC int ytls_encrypt_data(hytls ytls, hsskt sskt, GBUFFER *gbuf);
+
+/**rst**
+    Use this function decrypt encrypted data.
+    The clear data will be returned in on_clear_data_cb callback.
+**rst**/
+PUBLIC int ytls_decrypt_data(hytls ytls, hsskt sskt, GBUFFER *gbuf);
+
+/**rst**
+    Get last error
+**rst**/
+PUBLIC const char *ytls_get_last_error(hytls ytls, hsskt sskt);
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
