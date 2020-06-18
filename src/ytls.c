@@ -90,8 +90,16 @@ PUBLIC const char * ytls_version(hytls ytls)
 PUBLIC hsskt ytls_new_secure_filter(
     hytls ytls,
     int (*on_handshake_done_cb)(void *user_data, int error),
-    int (*on_clear_data_cb)(void *user_data, GBUFFER *gbuf, int error),
-    int (*on_encrypted_data_cb)(void *user_data, GBUFFER *gbuf, int error),
+    int (*on_clear_data_cb)(
+        void *user_data,
+        GBUFFER *gbuf, // must be decref
+        int error
+    ),
+    int (*on_encrypted_data_cb)(
+        void *user_data,
+        GBUFFER *gbuf, // must be decref
+        int error
+    ),
     void *user_data
 )
 {
@@ -127,7 +135,11 @@ PUBLIC int ytls_do_handshake(hytls ytls, hsskt sskt)
     Use this function to encrypt clear data.
     The encrypted data will be returned in on_encrypted_data_cb callback.
  ***************************************************************************/
-PUBLIC int ytls_encrypt_data(hytls ytls, hsskt sskt, GBUFFER *gbuf)
+PUBLIC int ytls_encrypt_data(
+    hytls ytls,
+    hsskt sskt,
+    GBUFFER *gbuf // owned
+)
 {
     api_tls_t *api_tls = ((__ytls_t__ *)ytls)->api_tls;
     return api_tls->encrypt_data(sskt, gbuf);
@@ -137,7 +149,11 @@ PUBLIC int ytls_encrypt_data(hytls ytls, hsskt sskt, GBUFFER *gbuf)
     Use this function decrypt encrypted data.
     The clear data will be returned in on_clear_data_cb callback.
  ***************************************************************************/
-PUBLIC int ytls_decrypt_data(hytls ytls, hsskt sskt, GBUFFER *gbuf)
+PUBLIC int ytls_decrypt_data(
+    hytls ytls,
+    hsskt sskt,
+    GBUFFER *gbuf // owned
+)
 {
     api_tls_t *api_tls = ((__ytls_t__ *)ytls)->api_tls;
     return api_tls->decrypt_data(sskt, gbuf);

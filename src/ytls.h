@@ -37,14 +37,28 @@ typedef struct api_tls_s {
     hsskt (*new_secure_filter)(
         hytls ytls,
         int (*on_handshake_done_cb)(void *user_data, int error),
-        int (*on_clear_data_cb)(void *user_data, GBUFFER *gbuf, int error),
-        int (*on_encrypted_data_cb)(void *user_data, GBUFFER *gbuf, int error),
+        int (*on_clear_data_cb)(
+            void *user_data,
+            GBUFFER *gbuf,  // must be decref
+            int error
+        ),
+        int (*on_encrypted_data_cb)(
+            void *user_data,
+            GBUFFER *gbuf, // must be decref
+            int error
+        ),
         void *user_data
     );
     void (*free_secure_filter)(hsskt sskt);
     int (*do_handshake)(hsskt sskt); // Must return 1 (done), 0 (in progress), -1 (failure)
-    int (*encrypt_data)(hsskt sskt, GBUFFER *gbuf);
-    int (*decrypt_data)(hsskt sskt, GBUFFER *gbuf);
+    int (*encrypt_data)(
+        hsskt sskt,
+        GBUFFER *gbuf  // owned
+    );
+    int (*decrypt_data)(
+        hsskt sskt,
+        GBUFFER *gbuf  // owned
+    );
     const char * (*get_last_error)(hsskt sskt);
 } api_tls_t;
 
@@ -61,6 +75,13 @@ typedef struct { // Common to all ytls_t types
 
     "library"   library to use, defaul: "openssl"
     "trace"     True to verbose trace.
+
+    OPENSSL jn_config
+    -----------------
+        ssl_certificate
+        ssl_certificate_key
+        ssl_protocols
+        ssl_ciphers
 
 **rst**/
 PUBLIC hytls ytls_init(
@@ -84,8 +105,16 @@ PUBLIC const char * ytls_version(hytls ytls);
 PUBLIC hsskt ytls_new_secure_filter(
     hytls ytls,
     int (*on_handshake_done_cb)(void *user_data, int error),
-    int (*on_clear_data_cb)(void *user_data, GBUFFER *gbuf, int error),
-    int (*on_encrypted_data_cb)(void *user_data, GBUFFER *gbuf, int error),
+    int (*on_clear_data_cb)(
+        void *user_data,
+        GBUFFER *gbuf,  // must be decref
+        int error
+    ),
+    int (*on_encrypted_data_cb)(
+        void *user_data,
+        GBUFFER *gbuf,  // must be decref
+        int error
+    ),
     void *user_data
 );
 /**rst**
@@ -107,13 +136,21 @@ PUBLIC int ytls_do_handshake(hytls ytls, hsskt sskt);
     Use this function to encrypt clear data.
     The encrypted data will be returned in on_encrypted_data_cb callback.
 **rst**/
-PUBLIC int ytls_encrypt_data(hytls ytls, hsskt sskt, GBUFFER *gbuf);
+PUBLIC int ytls_encrypt_data(
+    hytls ytls,
+    hsskt sskt,
+    GBUFFER *gbuf // owned
+);
 
 /**rst**
     Use this function decrypt encrypted data.
     The clear data will be returned in on_clear_data_cb callback.
 **rst**/
-PUBLIC int ytls_decrypt_data(hytls ytls, hsskt sskt, GBUFFER *gbuf);
+PUBLIC int ytls_decrypt_data(
+    hytls ytls,
+    hsskt sskt,
+    GBUFFER *gbuf // owned
+);
 
 /**rst**
     Get last error

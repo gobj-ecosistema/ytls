@@ -22,9 +22,9 @@
  ***************************************************************/
 typedef struct ytls_s {
     api_tls_t *api_tls;     // HACK must be the first item
-    json_t *jn_config;
     BOOL server;
     SSL_CTX *ctx;
+    BOOL trace;
 } ytls_t;
 
 typedef struct sskt_s {
@@ -144,7 +144,7 @@ PRIVATE hytls init(
     /*--------------------------------*
      *      Options
      *--------------------------------*/
-    long options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;
+    long options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
     SSL_CTX_set_options(ctx, options);
 
     SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY
@@ -172,14 +172,65 @@ PRIVATE hytls init(
     }
 
     ytls->api_tls = &api_tls;
-    ytls->jn_config = json_deep_copy(jn_config);
     ytls->server = server;
     ytls->ctx = ctx;
 
     /* the SSL trace callback is only used for verbose logging */
-    if(kw_get_bool(jn_config, "trace", 0, 0)) {
+    ytls->trace = kw_get_bool(jn_config, "trace", 0, KW_WILD_NUMBER);
+
+    if(ytls->trace) {
         SSL_CTX_set_msg_callback(ytls->ctx, ssl_tls_trace);
         SSL_CTX_set_msg_callback_arg(ytls->ctx, ytls);
+    }
+
+    const char *ssl_certificate = kw_get_str(
+        jn_config, "ssl_certificate", "", server?KW_REQUIRED:0
+    );
+    const char *ssl_certificate_key = kw_get_str(
+        jn_config, "ssl_certificate_key", "", server?KW_REQUIRED:0
+    );
+    const char *ssl_ciphers = kw_get_str(
+        jn_config, "ssl_ciphers", "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4", 0
+    );
+    //const char *ssl_protocols = kw_get_str(jn_config, "ssl_protocols", "", 0); // TODO
+
+    if(SSL_CTX_set_cipher_list(ytls->ctx, ssl_ciphers)<0) {
+        unsigned long err = ERR_get_error();
+        log_error(0,
+            "gobj",         "%s", __FILE__,
+            "function",     "%s", __FUNCTION__,
+            "msgset",       "%s", MSGSET_INTERNAL_ERROR,
+            "msg",          "%s", "SSL_CTX_set_cipher_list() FAILED",
+            "error",        "%s", ERR_error_string(err, NULL),
+            NULL
+        );
+    }
+
+    if(server) {
+        if(SSL_CTX_use_certificate_file(ytls->ctx, ssl_certificate, SSL_FILETYPE_PEM)<0) {
+            unsigned long err = ERR_get_error();
+            log_error(0,
+                "gobj",         "%s", __FILE__,
+                "function",     "%s", __FUNCTION__,
+                "msgset",       "%s", MSGSET_INTERNAL_ERROR,
+                "msg",          "%s", "SSL_CTX_use_certificate_chain_file() FAILED",
+                "error",        "%s", ERR_error_string(err, NULL),
+                NULL
+            );
+        }
+        if(SSL_CTX_use_PrivateKey_file(ytls->ctx, ssl_certificate_key, SSL_FILETYPE_PEM)<0) {
+            unsigned long err = ERR_get_error();
+            log_error(0,
+                "gobj",         "%s", __FILE__,
+                "function",     "%s", __FUNCTION__,
+                "msgset",       "%s", MSGSET_INTERNAL_ERROR,
+                "msg",          "%s", "SSL_CTX_use_PrivateKey_file() FAILED",
+                "error",        "%s", ERR_error_string(err, NULL),
+                NULL
+            );
+        }
+    } else {
+        // TODO SSL_set_tlsext_host_name : "yuneta.io"
     }
 
     return (hytls)ytls;
@@ -194,7 +245,6 @@ PRIVATE void cleanup(hytls ytls_)
 
     // TODO manten una lista de sskt y cierralos
 
-    EXEC_AND_RESET(json_decref, ytls->jn_config);
     SSL_CTX_free(ytls->ctx);
 
     /* Removes all digests and ciphers */
@@ -287,7 +337,7 @@ PRIVATE hsskt new_secure_filter(
             "gobj",         "%s", __FILE__,
             "function",     "%s", __FUNCTION__,
             "msgset",       "%s", MSGSET_SYSTEM_ERROR,
-            "msg",          "%s", "SSL_new() FAILED",
+            "msg",          "%s", "BIO_new_bio_pair() FAILED",
             "error",        "%s", ERR_error_string(err, NULL),
             NULL
         );
@@ -313,8 +363,8 @@ PRIVATE void free_secure_filter(hsskt sskt_)
         SSL_shutdown(sskt->ssl);
     }
     flush_encrypted_data(sskt);
-    BIO_free(sskt->network_bio);
     SSL_free(sskt->ssl);    /* implicitly frees internal_bio */
+    BIO_free(sskt->network_bio);
 
     gbmem_free(sskt);
 }
@@ -334,6 +384,11 @@ PRIVATE int do_handshake(hsskt sskt_)
         switch(detail) {
         case SSL_ERROR_WANT_READ:
         case SSL_ERROR_WANT_WRITE:
+            if(sskt->ytls->trace) {
+                trace_msg("------- handshake: %s",
+                    detail==SSL_ERROR_WANT_READ?"SSL_WANT_READ":"SSL_WANT_WRITE"
+                );
+            }
             flush_encrypted_data(sskt);
             flush_clear_data(sskt);
             return 0;
@@ -368,8 +423,16 @@ PRIVATE int do_handshake(hsskt sskt_)
  ***************************************************************************/
 PRIVATE int flush_encrypted_data(sskt_t *sskt)
 {
-    size_t pending;
+    if(sskt->ytls->trace) {
+        trace_msg("------- flush_encrypted_data()");
+    }
+
+    //BIO_ctrl_get_read_request
+    long pending;
     while((pending = BIO_ctrl(sskt->network_bio, BIO_CTRL_PENDING, 0, NULL))>0) {
+        if(sskt->ytls->trace) {
+            trace_msg("------- flush_encrypted_data() pending %d", pending);
+        }
         GBUFFER *gbuf = gbuf_create(pending, pending, 0, 0);
         char *p = gbuf_cur_wr_pointer(gbuf);
         int ret = BIO_read(sskt->network_bio, p, pending);
@@ -395,21 +458,38 @@ PRIVATE int flush_encrypted_data(sskt_t *sskt)
 /***************************************************************************
  *
  ***************************************************************************/
-PRIVATE int encrypt_data(hsskt sskt_, GBUFFER *gbuf)
+PRIVATE int encrypt_data(
+    hsskt sskt_,
+    GBUFFER *gbuf // owned
+)
 {
     sskt_t *sskt = sskt_;
 
     size_t len;
     while((len = gbuf_chunk(gbuf))>0) {
+        size_t bytes = BIO_ctrl_get_write_guarantee(sskt->internal_bio);
+        if(bytes <= 0) {
+            break;
+        }
+        int towrite = MIN(len, bytes);
         char *p = gbuf_cur_rd_pointer(gbuf);    // Don't pop data, be sure it's written
-        int written = SSL_write(sskt->ssl, p, len);
+
+        int written = BIO_write(sskt->internal_bio, p, towrite);
         if(written <= 0) {
+            //if (!BIO_should_retry(sskt->network_bio)) {
+
             int detail = SSL_get_error(sskt->ssl, written);
             switch(detail) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
+                if(sskt->ytls->trace) {
+                    trace_msg("------- encrypt_data: %s",
+                        detail==SSL_ERROR_WANT_READ?"SSL_WANT_READ":"SSL_WANT_WRITE"
+                    );
+                }
                 flush_encrypted_data(sskt);
                 flush_clear_data(sskt);
+                GBUF_DECREF(gbuf);
                 return 0;
 
             default:
@@ -420,19 +500,35 @@ PRIVATE int encrypt_data(hsskt sskt_, GBUFFER *gbuf)
                         "gobj",         "%s", __FILE__,
                         "function",     "%s", __FUNCTION__,
                         "msgset",       "%s", MSGSET_SYSTEM_ERROR,
-                        "msg",          "%s", "SSL_write() FAILED",
+                        "msg",          "%s", "BIO_write() FAILED",
                         "error",        "%s", sskt->last_error,
                         NULL
                     );
                     sskt->on_handshake_done_cb(sskt->user_data, -1);
                 }
+                GBUF_DECREF(gbuf);
                 return -1;
             }
-        } else {
+            break;
+        }
+        gbuf_get(gbuf, written);    // Pop data
+
+        //if(SSL_is_init_finished(sskt->ssl)) {
+        // if(SSL_in_init
+        if(sskt->handshake_informed) {
+            if(sskt->ytls->trace) {
+                log_debug_dump(0, p, len, "------- ==> encrypt_data DATA");
+            }
             gbuf_get(gbuf, written);    // Pop data
             flush_encrypted_data(sskt);
+        } else {
+            if(sskt->ytls->trace) {
+                log_debug_dump(0, p, len, "------- ==> encrypt_data HANDSHAKE");
+            }
+            do_handshake(sskt);
         }
     }
+    GBUF_DECREF(gbuf);
     return 0;
 }
 
@@ -441,43 +537,34 @@ PRIVATE int encrypt_data(hsskt sskt_, GBUFFER *gbuf)
  ***************************************************************************/
 PRIVATE int flush_clear_data(sskt_t *sskt)
 {
-    size_t pending;
-    while((pending = SSL_pending(sskt->ssl))>0) {
+    if(sskt->ytls->trace) {
+        trace_msg("------- flush_clear_data()");
+    }
+
+    long pending;
+    while((pending = BIO_ctrl(sskt->internal_bio, BIO_CTRL_PENDING, 0, NULL))>0) {
+        if(sskt->ytls->trace) {
+            trace_msg("------- flush_clear_data() pending %d", pending);
+        }
         GBUFFER *gbuf = gbuf_create(pending, pending, 0, 0);
         char *p = gbuf_cur_wr_pointer(gbuf);
-        int consumed = SSL_read(sskt->ssl, p, pending);
-        if(consumed <= 0) {
-            int detail = SSL_get_error(sskt->ssl, consumed);
-            switch(detail) {
-            case SSL_ERROR_WANT_READ:
-            case SSL_ERROR_WANT_WRITE:
-                flush_encrypted_data(sskt);
-                break;
-
-            case SSL_ERROR_NONE:        /* this is not an error */
-            case SSL_ERROR_ZERO_RETURN: /* no more data */
-                break;
-
-            default:
-                {
-                    unsigned long err = ERR_get_error();
-                    ERR_error_string_n(err, sskt->last_error, sizeof(sskt->last_error));
-                    log_error(0,
-                        "gobj",         "%s", __FILE__,
-                        "function",     "%s", __FUNCTION__,
-                        "msgset",       "%s", MSGSET_SYSTEM_ERROR,
-                        "msg",          "%s", "SSL_read() FAILED",
-                        "error",        "%s", sskt->last_error,
-                        NULL
-                    );
-                    sskt->on_clear_data_cb(sskt->user_data, gbuf, -1);
-                }
-                return -1;
-            }
+        int ret = BIO_read(sskt->internal_bio, p, pending);
+        if(ret <= 0) {
+            log_error(0,
+                "gobj",         "%s", __FILE__,
+                "function",     "%s", __FUNCTION__,
+                "msgset",       "%s", MSGSET_SYSTEM_ERROR,
+                "msg",          "%s", "BIO_read() FAILED",
+                "ret",          "%d", ret,
+                "pending",      "%d", (int)pending,
+                NULL
+            );
+            sskt->on_clear_data_cb(sskt->user_data, gbuf, -1);
+        } else {
+            // Callback clear data
+            gbuf_set_wr(gbuf, pending);
+            sskt->on_clear_data_cb(sskt->user_data, gbuf, 0);
         }
-        // Callback clear data
-        gbuf_set_wr(gbuf, pending);
-        sskt->on_clear_data_cb(sskt->user_data, gbuf, 0);
     }
     return 0;
 }
@@ -486,7 +573,10 @@ PRIVATE int flush_clear_data(sskt_t *sskt)
     Use this function decrypt encrypted data.
     The clear data will be returned in on_clear_data_cb callback.
  ***************************************************************************/
-PRIVATE int decrypt_data(hsskt sskt_, GBUFFER *gbuf)
+PRIVATE int decrypt_data(
+    hsskt sskt_,
+    GBUFFER *gbuf // owned
+)
 {
     sskt_t *sskt = sskt_;
 
@@ -501,17 +591,56 @@ PRIVATE int decrypt_data(hsskt sskt_, GBUFFER *gbuf)
 
         int written = BIO_write(sskt->network_bio, p, towrite);
         if(written <= 0) {
+            int detail = SSL_get_error(sskt->ssl, written);
+            switch(detail) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE:
+                if(sskt->ytls->trace) {
+                    trace_msg("------- decrypt_data: %s",
+                        detail==SSL_ERROR_WANT_READ?"SSL_WANT_READ":"SSL_WANT_WRITE"
+                    );
+                }
+                flush_encrypted_data(sskt);
+                flush_clear_data(sskt);
+                GBUF_DECREF(gbuf);
+                return 0;
+
+            default:
+                {
+                    unsigned long err = ERR_get_error();
+                    ERR_error_string_n(err, sskt->last_error, sizeof(sskt->last_error));
+                    log_error(0,
+                        "gobj",         "%s", __FILE__,
+                        "function",     "%s", __FUNCTION__,
+                        "msgset",       "%s", MSGSET_SYSTEM_ERROR,
+                        "msg",          "%s", "BIO_write() FAILED",
+                        "error",        "%s", sskt->last_error,
+                        NULL
+                    );
+                    sskt->on_handshake_done_cb(sskt->user_data, -1);
+                }
+                GBUF_DECREF(gbuf);
+                return -1;
+            }
+            break;
             break;
         }
         gbuf_get(gbuf, written);    // Pop data
 
-        if(SSL_is_init_finished(sskt->ssl)) {
+        //if(SSL_is_init_finished(sskt->ssl)) {
+        if(sskt->handshake_informed) {
+            if(sskt->ytls->trace) {
+                log_debug_dump(0, p, len, "------- <== decrypt_data DATA");
+            }
             flush_clear_data(sskt);
         } else {
+            if(sskt->ytls->trace) {
+                log_debug_dump(0, p, len, "------- <== decrypt_data HANDSHAKE");
+            }
             do_handshake(sskt);
         }
     }
-
+    GBUF_DECREF(gbuf);
     return 0;
 }
 
