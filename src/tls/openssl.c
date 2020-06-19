@@ -564,7 +564,7 @@ PRIVATE int encrypt_data(
     }
 
     size_t len;
-    while((len = gbuf_chunk(gbuf))>0) {
+    while(sskt->ssl && (len = gbuf_chunk(gbuf))>0) {
         char *p = gbuf_cur_rd_pointer(gbuf);    // Don't pop data, be sure it's written
         int written = SSL_write(sskt->ssl, p, len);
         if(written <= 0) {
@@ -622,7 +622,7 @@ PRIVATE int flush_clear_data(sskt_t *sskt)
     if(sskt->ytls->trace) {
         trace_msg("------- flush_clear_data()");
     }
-    while(1) {
+    while(sskt->ssl) {
         GBUFFER *gbuf = gbuf_create(sskt->ytls->rx_buffer_size, sskt->ytls->rx_buffer_size, 0, 0);
         char *p = gbuf_cur_wr_pointer(gbuf);
         int nread = SSL_read(sskt->ssl, p, sskt->ytls->rx_buffer_size);
