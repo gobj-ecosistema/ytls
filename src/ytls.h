@@ -82,6 +82,7 @@ typedef struct { // Common to all ytls_t types
         ssl_certificate_key
         ssl_protocols
         ssl_ciphers
+        rx_buffer_size (default: 32*1024)
 
 **rst**/
 PUBLIC hytls ytls_init(
