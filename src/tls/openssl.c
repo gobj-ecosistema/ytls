@@ -424,7 +424,7 @@ PRIVATE int do_handshake(hsskt sskt_)
 {
     sskt_t *sskt = sskt_;
 
-    if(sskt->ytls->trace) {
+    if(sskt->ytls->trace) {// TODO quita este tipo de trace cuando esté todo bien probado.
         trace_msg("------- do_handshake");
     }
 
