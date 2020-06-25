@@ -207,6 +207,9 @@ PRIVATE hytls init(
     long options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
     SSL_CTX_set_options(ctx, options);
 
+    SSL_CTX_set_min_proto_version(ctx, 0);
+    SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
+
     SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY
         | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER
         | SSL_MODE_ENABLE_PARTIAL_WRITE
