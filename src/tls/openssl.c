@@ -464,6 +464,7 @@ PRIVATE int do_handshake(hsskt sskt_)
                 "function",     "%s", __FUNCTION__,
                 "msgset",       "%s", MSGSET_SYSTEM_ERROR,
                 "msg",          "%s", "SSL_do_handshake() FAILED",
+                "ret",          "%d", (int)detail,
                 "error",        "%d", (int)sskt->error,
                 "serror",       "%s", sskt->last_error,
                 NULL
@@ -589,6 +590,7 @@ PRIVATE int encrypt_data(
                     "function",     "%s", __FUNCTION__,
                     "msgset",       "%s", MSGSET_SYSTEM_ERROR,
                     "msg",          "%s", "SSL_write() FAILED",
+                    "ret",          "%d", (int)ret,
                     "error",        "%d", (int)sskt->error,
                     "serror",       "%s", sskt->last_error,
                     NULL
@@ -638,6 +640,7 @@ PRIVATE int flush_clear_data(sskt_t *sskt)
                     "function",     "%s", __FUNCTION__,
                     "msgset",       "%s", MSGSET_SYSTEM_ERROR,
                     "msg",          "%s", "SSL_read() FAILED",
+                    "ret",          "%d", (int)nread,
                     "error",        "%d", (int)sskt->error,
                     "serror",       "%s", sskt->last_error,
                     NULL
@@ -682,6 +685,7 @@ PRIVATE int decrypt_data(
                 "function",     "%s", __FUNCTION__,
                 "msgset",       "%s", MSGSET_SYSTEM_ERROR,
                 "msg",          "%s", "BIO_write() FAILED",
+                "ret",          "%d", (int)written,
                 "error",        "%d", (int)sskt->error,
                 "serror",       "%s", sskt->last_error,
                 NULL
