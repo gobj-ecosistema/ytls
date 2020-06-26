@@ -207,6 +207,7 @@ PRIVATE hytls init(
     long options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
     SSL_CTX_set_options(ctx, options);
 
+// Si dejo esto se produce el error SSL_ERROR_NO_CYPHER_OVERLAP
 //     SSL_CTX_set_min_proto_version(ctx, 0);
 //     SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
 
