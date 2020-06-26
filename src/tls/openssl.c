@@ -394,7 +394,7 @@ PRIVATE hsskt new_secure_filter(
         SSL_set_connect_state(sskt->ssl);
     }
 
-    SSL_set_options(sskt->ssl, SSL_OP_NO_RENEGOTIATION); // New to openssl 1.1.1
+// Esto jode?    SSL_set_options(sskt->ssl, SSL_OP_NO_RENEGOTIATION); // New to openssl 1.1.1
 
     sskt->rbio = BIO_new(BIO_s_mem());
     sskt->wbio = BIO_new(BIO_s_mem());
