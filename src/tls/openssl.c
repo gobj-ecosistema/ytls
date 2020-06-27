@@ -705,11 +705,12 @@ PRIVATE int decrypt_data(
         }
         if(!SSL_is_init_finished(sskt->ssl)) {
             do_handshake(sskt);
-        }
-        if(flush_clear_data(sskt)<0) {
-            // Error already logged
-            GBUF_DECREF(gbuf);
-            return -1;
+        } else {
+            if(flush_clear_data(sskt)<0) {
+                // Error already logged
+                GBUF_DECREF(gbuf);
+                return -1;
+            }
         }
     }
     GBUF_DECREF(gbuf);
