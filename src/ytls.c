@@ -92,13 +92,11 @@ PUBLIC hsskt ytls_new_secure_filter(
     int (*on_handshake_done_cb)(void *user_data, int error),
     int (*on_clear_data_cb)(
         void *user_data,
-        GBUFFER *gbuf, // must be decref
-        int error
+        GBUFFER *gbuf // must be decref
     ),
     int (*on_encrypted_data_cb)(
         void *user_data,
-        GBUFFER *gbuf, // must be decref
-        int error
+        GBUFFER *gbuf // must be decref
     ),
     void *user_data
 )

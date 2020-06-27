@@ -94,8 +94,8 @@ typedef struct sskt_s {
     BIO *wbio; /* SSL writes to, we read from. */
     BOOL handshake_informed;
     int (*on_handshake_done_cb)(void *user_data, int error);
-    int (*on_clear_data_cb)(void *user_data, GBUFFER *gbuf, int error);
-    int (*on_encrypted_data_cb)(void *user_data, GBUFFER *gbuf, int error);
+    int (*on_clear_data_cb)(void *user_data, GBUFFER *gbuf);
+    int (*on_encrypted_data_cb)(void *user_data, GBUFFER *gbuf);
     void *user_data;
     char last_error[256];
     int error;
@@ -114,8 +114,8 @@ PRIVATE const char *version(hytls ytls);
 PRIVATE hsskt new_secure_filter(
     hytls ytls,
     int (*on_handshake_done_cb)(void *user_data, int error),
-    int (*on_clear_data_cb)(void *user_data, GBUFFER *gbuf, int error),
-    int (*on_encrypted_data_cb)(void *user_data, GBUFFER *gbuf, int error),
+    int (*on_clear_data_cb)(void *user_data, GBUFFER *gbuf),
+    int (*on_encrypted_data_cb)(void *user_data, GBUFFER *gbuf),
     void *user_data
 );
 PRIVATE void free_secure_filter(hsskt sskt);
@@ -343,8 +343,8 @@ PRIVATE const char *version(hytls ytls)
 PRIVATE hsskt new_secure_filter(
     hytls ytls_,
     int (*on_handshake_done_cb)(void *user_data, int error),
-    int (*on_clear_data_cb)(void *user_data, GBUFFER *gbuf, int error),
-    int (*on_encrypted_data_cb)(void *user_data, GBUFFER *gbuf, int error),
+    int (*on_clear_data_cb)(void *user_data, GBUFFER *gbuf),
+    int (*on_encrypted_data_cb)(void *user_data, GBUFFER *gbuf),
     void *user_data
 )
 {
@@ -534,7 +534,7 @@ PRIVATE int flush_encrypted_data(sskt_t *sskt)
         }
         if(ret > 0) {
             gbuf_set_wr(gbuf, ret);
-            sskt->on_encrypted_data_cb(sskt->user_data, gbuf, 0);
+            sskt->on_encrypted_data_cb(sskt->user_data, gbuf);
         }
     }
 
@@ -660,7 +660,7 @@ PRIVATE int flush_clear_data(sskt_t *sskt)
 
         // Callback clear data
         gbuf_set_wr(gbuf, nread);
-        sskt->on_clear_data_cb(sskt->user_data, gbuf, 0);
+        sskt->on_clear_data_cb(sskt->user_data, gbuf);
     }
     return 0;
 }
