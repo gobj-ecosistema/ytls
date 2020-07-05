@@ -59,6 +59,7 @@ typedef struct api_tls_s {
     );
     const char * (*get_last_error)(hsskt sskt);
     void (*set_trace)(hsskt sskt, BOOL set);
+    int (*flush)(hsskt sskt); // flush clear and encrypted data
 } api_tls_t;
 
 typedef struct { // Common to all ytls_t types
@@ -159,6 +160,11 @@ PUBLIC const char *ytls_get_last_error(hytls ytls, hsskt sskt);
     Set trace
 **rst**/
 PUBLIC void ytls_set_trace(hytls ytls, hsskt sskt, BOOL set);
+
+/**rst**
+    Flush data
+**rst**/
+PUBLIC int ytls_flush(hytls ytls, hsskt sskt);
 
 
 #ifdef __cplusplus

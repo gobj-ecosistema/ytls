@@ -105,6 +105,11 @@ typedef struct sskt_s {
 /***************************************************************
  *              Prototypes
  ***************************************************************/
+PRIVATE int flush_clear_data(sskt_t *sskt);
+
+/***************************************************************
+ *              Api
+ ***************************************************************/
 PRIVATE hytls init(
         json_t *jn_config,  // not owned
         BOOL server
@@ -122,14 +127,11 @@ PRIVATE void free_secure_filter(hsskt sskt);
 PRIVATE int do_handshake(hsskt sskt);
 PRIVATE int flush_encrypted_data(sskt_t *sskt);
 PRIVATE int encrypt_data(hsskt sskt, GBUFFER *gbuf);
-PRIVATE int flush_clear_data(sskt_t *sskt);
 PRIVATE int decrypt_data(hsskt sskt, GBUFFER *gbuf);
 PRIVATE const char *last_error(hsskt sskt);
 PRIVATE void set_trace(hsskt sskt, BOOL set);
+PRIVATE int flush(hsskt sskt);
 
-/***************************************************************
- *              Data
- ***************************************************************/
 PRIVATE api_tls_t api_tls = {
     "OPENSSL",
     init,
@@ -141,9 +143,13 @@ PRIVATE api_tls_t api_tls = {
     encrypt_data,
     decrypt_data,
     last_error,
-    set_trace
+    set_trace,
+    flush
 };
 
+/***************************************************************
+ *              Data
+ ***************************************************************/
 BOOL __initialized__ = FALSE;
 
 /***************************************************************************
@@ -404,7 +410,11 @@ PRIVATE hsskt new_secure_filter(
 
     SSL_set_bio(sskt->ssl, sskt->rbio, sskt->wbio);
 
-    do_handshake(sskt);
+    if(do_handshake(sskt)<0) {
+        SSL_free(sskt->ssl);   /* free the SSL object and its BIO's */
+        gbmem_free(sskt);
+        return 0;
+    }
 
     return sskt;
 }
@@ -491,7 +501,9 @@ PRIVATE int do_handshake(hsskt sskt_)
 
     flush_encrypted_data(sskt);
 
-    if(ret==1 || SSL_is_init_finished(sskt->ssl)) {
+    BOOL handshake_end = SSL_is_init_finished(sskt->ssl);
+    if(ret==1 || handshake_end) {
+        trace_msg("===========> handshake_end=%d, ret= %d", handshake_end, ret); // TODO TEST
         /*
         - return 1
             The TLS/SSL handshake was successfully completed,
@@ -712,7 +724,11 @@ PRIVATE int decrypt_data(
             log_debug_dump(0, p, len, "------- <== decrypt_data");
         }
         if(!SSL_is_init_finished(sskt->ssl)) {
-            do_handshake(sskt);
+            if(do_handshake(sskt)<0) {
+                // Error already logged
+                GBUF_DECREF(gbuf);
+                return -1;
+            }
         } else {
             if(flush_clear_data(sskt)<0) {
                 // Error already logged
@@ -735,6 +751,16 @@ PRIVATE const char *last_error(hsskt sskt_)
         return "???";
     }
     return sskt->last_error;
+}
+
+/***************************************************************************
+ *
+ ***************************************************************************/
+PRIVATE int flush(hsskt sskt)
+{
+    flush_encrypted_data(sskt);
+    flush_clear_data(sskt);
+    return 0;
 }
 
 

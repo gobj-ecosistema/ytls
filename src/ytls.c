@@ -174,3 +174,13 @@ PUBLIC void ytls_set_trace(hytls ytls, hsskt sskt, BOOL set)
     api_tls_t *api_tls = ((__ytls_t__ *)ytls)->api_tls;
     return api_tls->set_trace(sskt, set);
 }
+
+/***************************************************************************
+    Flush data
+ ***************************************************************************/
+PUBLIC int ytls_flush(hytls ytls, hsskt sskt)
+{
+    api_tls_t *api_tls = ((__ytls_t__ *)ytls)->api_tls;
+    return api_tls->flush(sskt);
+}
+
