@@ -502,8 +502,7 @@ PRIVATE int do_handshake(hsskt sskt_)
     flush_encrypted_data(sskt);
 
     BOOL handshake_end = SSL_is_init_finished(sskt->ssl);
-    if(ret==1 || handshake_end) {
-        trace_msg("===========> handshake_end=%d, ret= %d", handshake_end, ret); // TODO TEST
+    if(ret==1 || handshake_end) { // Viene los dos a la vez
         /*
         - return 1
             The TLS/SSL handshake was successfully completed,
