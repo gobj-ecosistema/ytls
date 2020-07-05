@@ -501,7 +501,6 @@ PRIVATE int do_handshake(hsskt sskt_)
             sskt->handshake_informed = TRUE;
             sskt->on_handshake_done_cb(sskt->user_data, 0);
         }
-        flush_clear_data(sskt);
     }
 
     return 0;
@@ -551,13 +550,6 @@ PRIVATE int flush_encrypted_data(sskt_t *sskt)
             sskt->on_encrypted_data_cb(sskt->user_data, gbuf);
         }
     }
-
-//     if(!sskt->handshake_informed && SSL_is_init_finished(sskt->ssl)) {
-//         trace_msg("---------------> por aqui ---------->");
-//         sskt->handshake_informed = TRUE;
-//         sskt->on_handshake_done_cb(sskt->user_data, 0);
-//         flush_clear_data(sskt);
-//     }
 
     return 0;
 }
