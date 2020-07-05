@@ -166,3 +166,11 @@ PUBLIC const char *ytls_get_last_error(hytls ytls, hsskt sskt)
     return api_tls->get_last_error(sskt);
 }
 
+/***************************************************************************
+    Set trace
+ ***************************************************************************/
+PUBLIC void ytls_set_trace(hytls ytls, hsskt sskt, BOOL set)
+{
+    api_tls_t *api_tls = ((__ytls_t__ *)ytls)->api_tls;
+    return api_tls->set_trace(sskt, set);
+}

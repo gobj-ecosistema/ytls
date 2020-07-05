@@ -125,6 +125,7 @@ PRIVATE int encrypt_data(hsskt sskt, GBUFFER *gbuf);
 PRIVATE int flush_clear_data(sskt_t *sskt);
 PRIVATE int decrypt_data(hsskt sskt, GBUFFER *gbuf);
 PRIVATE const char *last_error(hsskt sskt);
+PRIVATE void set_trace(hsskt sskt, BOOL set);
 
 /***************************************************************
  *              Data
@@ -140,6 +141,7 @@ PRIVATE api_tls_t api_tls = {
     encrypt_data,
     decrypt_data,
     last_error,
+    set_trace
 };
 
 BOOL __initialized__ = FALSE;
@@ -422,6 +424,15 @@ PRIVATE void free_secure_filter(hsskt sskt_)
 }
 
 /***************************************************************************
+ *
+ ***************************************************************************/
+PRIVATE void set_trace(hsskt sskt_, BOOL set)
+{
+    sskt_t *sskt = sskt_;
+    sskt->ytls->trace = set?TRUE:FALSE;
+}
+
+/***************************************************************************
     Do handshake
  ***************************************************************************/
 PRIVATE int do_handshake(hsskt sskt_)
@@ -484,6 +495,7 @@ PRIVATE int do_handshake(hsskt sskt_)
             The TLS/SSL handshake was successfully completed,
             a TLS/SSL connection has been established.
         */
+        flush_encrypted_data(sskt);
         if(!sskt->handshake_informed) {
             sskt->handshake_informed = TRUE;
             sskt->on_handshake_done_cb(sskt->user_data, 0);

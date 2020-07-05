@@ -58,6 +58,7 @@ typedef struct api_tls_s {
         GBUFFER *gbuf  // owned
     );
     const char * (*get_last_error)(hsskt sskt);
+    void (*set_trace)(hsskt sskt, BOOL set);
 } api_tls_t;
 
 typedef struct { // Common to all ytls_t types
@@ -153,6 +154,11 @@ PUBLIC int ytls_decrypt_data(
     Get last error
 **rst**/
 PUBLIC const char *ytls_get_last_error(hytls ytls, hsskt sskt);
+
+/**rst**
+    Set trace
+**rst**/
+PUBLIC void ytls_set_trace(hytls ytls, hsskt sskt, BOOL set);
 
 
 #ifdef __cplusplus
