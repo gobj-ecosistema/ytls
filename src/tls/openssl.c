@@ -474,7 +474,7 @@ PRIVATE int do_handshake(hsskt sskt_)
         default:
             sskt->error = ERR_get_error();
             ERR_error_string_n(sskt->error, sskt->last_error, sizeof(sskt->last_error));
-            log_error(0,
+            log_warning(0,
                 "gobj",         "%s", __FILE__,
                 "function",     "%s", __FUNCTION__,
                 "msgset",       "%s", MSGSET_SYSTEM_ERROR,
@@ -489,17 +489,19 @@ PRIVATE int do_handshake(hsskt sskt_)
         }
     }
 
+    flush_encrypted_data(sskt);
+
     if(ret==1 || SSL_is_init_finished(sskt->ssl)) {
         /*
         - return 1
             The TLS/SSL handshake was successfully completed,
             a TLS/SSL connection has been established.
         */
-        flush_encrypted_data(sskt);
         if(!sskt->handshake_informed) {
             sskt->handshake_informed = TRUE;
             sskt->on_handshake_done_cb(sskt->user_data, 0);
         }
+        flush_clear_data(sskt);
     }
 
     return 0;
@@ -550,10 +552,12 @@ PRIVATE int flush_encrypted_data(sskt_t *sskt)
         }
     }
 
-    if(!sskt->handshake_informed && SSL_is_init_finished(sskt->ssl)) {
-        sskt->handshake_informed = TRUE;
-        sskt->on_handshake_done_cb(sskt->user_data, 0);
-    }
+//     if(!sskt->handshake_informed && SSL_is_init_finished(sskt->ssl)) {
+//         trace_msg("---------------> por aqui ---------->");
+//         sskt->handshake_informed = TRUE;
+//         sskt->on_handshake_done_cb(sskt->user_data, 0);
+//         flush_clear_data(sskt);
+//     }
 
     return 0;
 }
