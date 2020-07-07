@@ -214,7 +214,12 @@ PRIVATE hytls init(
      *--------------------------------*/
     // Si dejo esto las conexiones desde movil fallan, usan SSLv3 TODO dejalo configurable
     //long options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
-    long options = kw_get_int(jn_config, "openssl_options", 0, 0);
+    long options = kw_get_int(
+        jn_config,
+        "openssl_options",
+        SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION,
+        0
+    );
     if(options) {
         SSL_CTX_set_options(ctx, options);
     }
@@ -266,7 +271,10 @@ PRIVATE hytls init(
         jn_config, "ssl_certificate_key", "", server?KW_REQUIRED:0
     );
     const char *ssl_ciphers = kw_get_str(
-        jn_config, "ssl_ciphers", "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4", 0
+        jn_config,
+        "ssl_ciphers",
+        "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4",
+        0
     );
     //const char *ssl_protocols = kw_get_str(jn_config, "ssl_protocols", "", 0); // TODO
 
