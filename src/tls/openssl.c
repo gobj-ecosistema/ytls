@@ -212,8 +212,6 @@ PRIVATE hytls init(
     /*--------------------------------*
      *      Options
      *--------------------------------*/
-    // Si dejo esto las conexiones desde movil fallan, usan SSLv3 TODO dejalo configurable
-    //long options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
     long options = kw_get_int(
         jn_config,
         "openssl_options",
@@ -222,6 +220,10 @@ PRIVATE hytls init(
     );
     if(options) {
         SSL_CTX_set_options(ctx, options);
+    }
+
+    if(kw_get_bool(jn_config, "ssl_enable_old_protocols", 0, 0)) {
+        SSL_CTX_clear_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1);
     }
 
 // Si dejo esto se produce el error SSL_ERROR_NO_CYPHER_OVERLAP
