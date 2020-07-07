@@ -83,6 +83,7 @@ typedef struct { // Common to all ytls_t types
         ssl_protocols
         ssl_ciphers
         rx_buffer_size (default: 32*1024)
+        openssl_options (see openssl/ssl.h)
 
 **rst**/
 PUBLIC hytls ytls_init(

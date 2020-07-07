@@ -212,8 +212,12 @@ PRIVATE hytls init(
     /*--------------------------------*
      *      Options
      *--------------------------------*/
-    long options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
-    SSL_CTX_set_options(ctx, options);
+    // Si dejo esto las conexiones desde movil fallan, usan SSLv3 TODO dejalo configurable
+    //long options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
+    long options = kw_get_int(jn_config, "openssl_options", 0, 0);
+    if(options) {
+        SSL_CTX_set_options(ctx, options);
+    }
 
 // Si dejo esto se produce el error SSL_ERROR_NO_CYPHER_OVERLAP
 //     SSL_CTX_set_min_proto_version(ctx, 0);
