@@ -80,10 +80,10 @@ typedef struct { // Common to all ytls_t types
     -----------------
         ssl_certificate
         ssl_certificate_key
-        ssl_protocols
-        ssl_ciphers
+        ssl_protocols (not used, TODO)
+        ssl_ciphers (default: "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4")
         rx_buffer_size (default: 32*1024)
-        openssl_options (default: 0, nothing) (see openssl/ssl.h)
+        openssl_options (default: SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION)
 
 **rst**/
 PUBLIC hytls ytls_init(
