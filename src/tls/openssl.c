@@ -191,9 +191,9 @@ PRIVATE hytls init(
     }
     const SSL_METHOD *method = 0;
     if(server) {
-        method = SSLv23_server_method();        /* Create new server-method instance */
+        method = TLS_server_method();        /* Create new server-method instance */
     } else {
-        method = SSLv23_client_method();        /* Create new client-method instance */
+        method = TLS_client_method();        /* Create new client-method instance */
     }
     SSL_CTX *ctx = SSL_CTX_new(method);         /* Create new context */
     if(!ctx) {
