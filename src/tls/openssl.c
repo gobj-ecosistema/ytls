@@ -211,7 +211,15 @@ PRIVATE hytls init(
 
     /*--------------------------------*
      *      Options
+     *  Lo dejaré tal cual nginx
      *--------------------------------*/
+    SSL_CTX_set_options(ctx, SSL_OP_SINGLE_DH_USE);
+    /* only in 0.9.8m+ */
+    SSL_CTX_clear_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1);
+    SSL_CTX_set_min_proto_version(ctx, 0);
+    SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
+
+/*
     long options = kw_get_int(
         jn_config,
         "openssl_options",
@@ -224,19 +232,21 @@ PRIVATE hytls init(
 
     if(kw_get_bool(jn_config, "ssl_enable_old_protocols", 0, 0)) {
         SSL_CTX_clear_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1);
-    }
+    }*/
 
 // Si dejo esto se produce el error SSL_ERROR_NO_CYPHER_OVERLAP
 //     SSL_CTX_set_min_proto_version(ctx, 0);
 //     SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
 
-    SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY
-        | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER
-        | SSL_MODE_ENABLE_PARTIAL_WRITE
-#if defined(SSL_MODE_RELEASE_BUFFERS)
-        | SSL_MODE_RELEASE_BUFFERS
-#endif
-    );
+//     SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY
+//         | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER
+//         | SSL_MODE_ENABLE_PARTIAL_WRITE
+// #if defined(SSL_MODE_RELEASE_BUFFERS)
+//         | SSL_MODE_RELEASE_BUFFERS
+// #endif
+//     );
+
+    SSL_CTX_set_read_ahead(ctx, 1);
 
     /*--------------------------------*
      *      Alloc memory
