@@ -218,34 +218,6 @@ PRIVATE hytls init(
     SSL_CTX_clear_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1);
     SSL_CTX_set_min_proto_version(ctx, 0);
     SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
-
-/*
-    long options = kw_get_int(
-        jn_config,
-        "openssl_options",
-        SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION,
-        0
-    );
-    if(options) {
-        SSL_CTX_set_options(ctx, options);
-    }
-
-    if(kw_get_bool(jn_config, "ssl_enable_old_protocols", 0, 0)) {
-        SSL_CTX_clear_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1);
-    }*/
-
-// Si dejo esto se produce el error SSL_ERROR_NO_CYPHER_OVERLAP
-//     SSL_CTX_set_min_proto_version(ctx, 0);
-//     SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
-
-//     SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY
-//         | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER
-//         | SSL_MODE_ENABLE_PARTIAL_WRITE
-// #if defined(SSL_MODE_RELEASE_BUFFERS)
-//         | SSL_MODE_RELEASE_BUFFERS
-// #endif
-//     );
-
     SSL_CTX_set_read_ahead(ctx, 1);
 
     /*--------------------------------*
@@ -291,7 +263,7 @@ PRIVATE hytls init(
     ytls->rx_buffer_size = kw_get_int(jn_config, "rx_buffer_size", 32*1024, 0);
 
     const char *ssl_trusted_certificate = kw_get_str(
-        jn_config, "ssl_trusted_certificate", "", server?KW_REQUIRED:0
+        jn_config, "ssl_trusted_certificate", "", 0
     );
     int ssl_verify_depth = kw_get_int(jn_config, "ssl_verify_depth", 1, 0);
 
@@ -331,17 +303,19 @@ PRIVATE hytls init(
             );
         }
 
-        SSL_CTX_set_verify_depth(ctx, ssl_verify_depth);
-        if(SSL_CTX_load_verify_locations(ctx, ssl_trusted_certificate, NULL)==0) {
-            unsigned long err = ERR_get_error();
-            log_error(0,
-                "gobj",         "%s", __FILE__,
-                "function",     "%s", __FUNCTION__,
-                "msgset",       "%s", MSGSET_INTERNAL_ERROR,
-                "msg",          "%s", "SSL_CTX_load_verify_locations() FAILED",
-                "error",        "%s", ERR_error_string(err, NULL),
-                NULL
-            );
+        if(!empty_string(ssl_trusted_certificate)) {
+            SSL_CTX_set_verify_depth(ctx, ssl_verify_depth);
+            if(SSL_CTX_load_verify_locations(ctx, ssl_trusted_certificate, NULL)==0) {
+                unsigned long err = ERR_get_error();
+                log_error(0,
+                    "gobj",         "%s", __FILE__,
+                    "function",     "%s", __FUNCTION__,
+                    "msgset",       "%s", MSGSET_INTERNAL_ERROR,
+                    "msg",          "%s", "SSL_CTX_load_verify_locations() FAILED",
+                    "error",        "%s", ERR_error_string(err, NULL),
+                    NULL
+                );
+            }
         }
 
         /*
