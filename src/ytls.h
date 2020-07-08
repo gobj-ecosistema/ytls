@@ -78,12 +78,12 @@ typedef struct { // Common to all ytls_t types
 
     OPENSSL jn_config
     -----------------
-        ssl_certificate
-        ssl_certificate_key
-        // NO ssl_enable_old_protocols (bool, default false, true enable SSLv2,SSLv3,TLSv1
-        ssl_ciphers (string, default: "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4")
-        rx_buffer_size (integer, default: 32*1024)
-        // NO openssl_options (integer, default: SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION)
+        ssl_certificate         (string, required in server side)
+        ssl_certificate_key     (string, required in server side)
+        ssl_trusted_certificate (string, required in server side)
+        ssl_verify_depth        (integer, default:1)
+        ssl_ciphers             (string, default: "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4")
+        rx_buffer_size          (integer, default: 32*1024)
 
 **rst**/
 PUBLIC hytls ytls_init(

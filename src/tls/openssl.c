@@ -288,9 +288,12 @@ PRIVATE hytls init(
         "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4",
         0
     );
-    //const char *ssl_protocols = kw_get_str(jn_config, "ssl_protocols", "", 0); // TODO
-
     ytls->rx_buffer_size = kw_get_int(jn_config, "rx_buffer_size", 32*1024, 0);
+
+    const char *ssl_trusted_certificate = kw_get_str(
+        jn_config, "ssl_trusted_certificate", "", server?KW_REQUIRED:0
+    );
+    int ssl_verify_depth = kw_get_int(jn_config, "ssl_verify_depth", 1, 0);
 
     if(SSL_CTX_set_cipher_list(ytls->ctx, ssl_ciphers)<0) {
         unsigned long err = ERR_get_error();
@@ -327,6 +330,26 @@ PRIVATE hytls init(
                 NULL
             );
         }
+
+        SSL_CTX_set_verify_depth(ctx, ssl_verify_depth);
+        if(SSL_CTX_load_verify_locations(ctx, ssl_trusted_certificate, NULL)==0) {
+            unsigned long err = ERR_get_error();
+            log_error(0,
+                "gobj",         "%s", __FILE__,
+                "function",     "%s", __FUNCTION__,
+                "msgset",       "%s", MSGSET_INTERNAL_ERROR,
+                "msg",          "%s", "SSL_CTX_load_verify_locations() FAILED",
+                "error",        "%s", ERR_error_string(err, NULL),
+                NULL
+            );
+        }
+
+        /*
+         * SSL_CTX_load_verify_locations() may leave errors in the error queue
+         * while returning success
+         */
+        ERR_clear_error();
+
     } else {
         // TODO SSL_set_tlsext_host_name : "yuneta.io"
     }
