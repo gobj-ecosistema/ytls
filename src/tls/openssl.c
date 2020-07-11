@@ -286,7 +286,7 @@ PRIVATE hytls init(
                 "gobj",         "%s", __FILE__,
                 "function",     "%s", __FUNCTION__,
                 "msgset",       "%s", MSGSET_INTERNAL_ERROR,
-                "msg",          "%s", "SSL_CTX_use_certificate_chain_file() FAILED",
+                "msg",          "%s", "SSL_CTX_use_certificate_file() FAILED",
                 "error",        "%s", ERR_error_string(err, NULL),
                 NULL
             );
