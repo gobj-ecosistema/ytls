@@ -280,9 +280,9 @@ PRIVATE hytls init(
     }
 
     if(server) {
-        if(SSL_CTX_use_certificate_file(ytls->ctx, ssl_certificate, SSL_FILETYPE_PEM)<0) {
+        if(SSL_CTX_use_certificate_file(ytls->ctx, ssl_certificate, SSL_FILETYPE_PEM)!=1) {
             unsigned long err = ERR_get_error();
-            log_error(0,
+            log_error(LOG_OPT_EXIT_ZERO,
                 "gobj",         "%s", __FILE__,
                 "function",     "%s", __FUNCTION__,
                 "msgset",       "%s", MSGSET_INTERNAL_ERROR,
@@ -291,9 +291,9 @@ PRIVATE hytls init(
                 NULL
             );
         }
-        if(SSL_CTX_use_PrivateKey_file(ytls->ctx, ssl_certificate_key, SSL_FILETYPE_PEM)<0) {
+        if(SSL_CTX_use_PrivateKey_file(ytls->ctx, ssl_certificate_key, SSL_FILETYPE_PEM)!=1) {
             unsigned long err = ERR_get_error();
-            log_error(0,
+            log_error(LOG_OPT_EXIT_ZERO,
                 "gobj",         "%s", __FILE__,
                 "function",     "%s", __FUNCTION__,
                 "msgset",       "%s", MSGSET_INTERNAL_ERROR,
@@ -305,9 +305,9 @@ PRIVATE hytls init(
 
         if(!empty_string(ssl_trusted_certificate)) {
             SSL_CTX_set_verify_depth(ctx, ssl_verify_depth);
-            if(SSL_CTX_load_verify_locations(ctx, ssl_trusted_certificate, NULL)==0) {
+            if(SSL_CTX_load_verify_locations(ctx, ssl_trusted_certificate, NULL)!=1) {
                 unsigned long err = ERR_get_error();
-                log_error(0,
+                log_error(LOG_OPT_EXIT_ZERO,
                     "gobj",         "%s", __FILE__,
                     "function",     "%s", __FUNCTION__,
                     "msgset",       "%s", MSGSET_INTERNAL_ERROR,
