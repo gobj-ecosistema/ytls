@@ -288,6 +288,7 @@ PRIVATE hytls init(
                 "msgset",       "%s", MSGSET_INTERNAL_ERROR,
                 "msg",          "%s", "SSL_CTX_use_certificate_file() FAILED",
                 "error",        "%s", ERR_error_string(err, NULL),
+                "cert",         "%s", ssl_certificate,
                 NULL
             );
         }
@@ -299,6 +300,7 @@ PRIVATE hytls init(
                 "msgset",       "%s", MSGSET_INTERNAL_ERROR,
                 "msg",          "%s", "SSL_CTX_use_PrivateKey_file() FAILED",
                 "error",        "%s", ERR_error_string(err, NULL),
+                "cert",         "%s", ssl_certificate_key,
                 NULL
             );
         }
@@ -313,6 +315,7 @@ PRIVATE hytls init(
                     "msgset",       "%s", MSGSET_INTERNAL_ERROR,
                     "msg",          "%s", "SSL_CTX_load_verify_locations() FAILED",
                     "error",        "%s", ERR_error_string(err, NULL),
+                    "cert",         "%s", ssl_trusted_certificate,
                     NULL
                 );
             }
