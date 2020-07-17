@@ -60,6 +60,7 @@ typedef struct api_tls_s {
     const char * (*get_last_error)(hsskt sskt);
     void (*set_trace)(hsskt sskt, BOOL set);
     int (*flush)(hsskt sskt); // flush clear and encrypted data
+    void (*shutdown)(hsskt sskt);
 } api_tls_t;
 
 typedef struct { // Common to all ytls_t types
@@ -117,6 +118,12 @@ PUBLIC hsskt ytls_new_secure_filter(
     ),
     void *user_data
 );
+
+/**rst**
+    Shutdown secure connection
+**rst**/
+PUBLIC void ytls_shutdown(hytls ytls, hsskt sskt);
+
 /**rst**
     Free secure filter
 **rst**/

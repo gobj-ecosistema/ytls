@@ -123,6 +123,7 @@ PRIVATE hsskt new_secure_filter(
     int (*on_encrypted_data_cb)(void *user_data, GBUFFER *gbuf),
     void *user_data
 );
+PRIVATE void shutdown_sskt(hsskt sskt);
 PRIVATE void free_secure_filter(hsskt sskt);
 PRIVATE int do_handshake(hsskt sskt);
 PRIVATE int flush_encrypted_data(sskt_t *sskt);
@@ -144,7 +145,8 @@ PRIVATE api_tls_t api_tls = {
     decrypt_data,
     last_error,
     set_trace,
-    flush
+    flush,
+    shutdown_sskt
 };
 
 /***************************************************************
@@ -446,14 +448,22 @@ PRIVATE hsskt new_secure_filter(
 /***************************************************************************
  *
  ***************************************************************************/
-PRIVATE void free_secure_filter(hsskt sskt_)
+PRIVATE void shutdown_sskt(hsskt sskt_)
 {
     sskt_t *sskt = sskt_;
 
     SSL_shutdown(sskt->ssl);
     flush_encrypted_data(sskt);
-    SSL_free(sskt->ssl);   /* free the SSL object and its BIO's */
+}
 
+/***************************************************************************
+ *
+ ***************************************************************************/
+PRIVATE void free_secure_filter(hsskt sskt_)
+{
+    sskt_t *sskt = sskt_;
+
+    SSL_free(sskt->ssl);   /* free the SSL object and its BIO's */
     gbmem_free(sskt);
 }
 

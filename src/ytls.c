@@ -112,6 +112,15 @@ PUBLIC hsskt ytls_new_secure_filter(
 }
 
 /***************************************************************************
+    Shutdown
+ ***************************************************************************/
+PUBLIC void ytls_shutdown(hytls ytls, hsskt sskt)
+{
+    api_tls_t *api_tls = ((__ytls_t__ *)ytls)->api_tls;
+    return api_tls->shutdown(sskt);
+}
+
+/***************************************************************************
     Free secure socket
  ***************************************************************************/
 PUBLIC void ytls_free_secure_filter(hytls ytls, hsskt sskt)
