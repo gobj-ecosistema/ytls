@@ -528,16 +528,8 @@ PRIVATE int do_handshake(hsskt sskt_)
                 "serror",       "%s", sskt->last_error,
                 NULL
             );
-            if(sskt->on_handshake_done_cb(sskt->user_data, -1)<0) {
-                log_warning(0,
-                    "gobj",         "%s", __FILE__,
-                    "function",     "%s", __FUNCTION__,
-                    "msgset",       "%s", MSGSET_SYSTEM_ERROR,
-                    "msg",          "%s", "SSL_do_handshake() FAILED BUT ACCEPTING",
-                    NULL
-                );
-                return -1;
-            }
+            sskt->on_handshake_done_cb(sskt->user_data, -1);
+            return -1;
         }
     }
 
