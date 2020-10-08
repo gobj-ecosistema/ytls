@@ -474,6 +474,13 @@ PRIVATE void set_trace(hsskt sskt_, BOOL set)
 {
     sskt_t *sskt = sskt_;
     sskt->ytls->trace = set?TRUE:FALSE;
+
+    if(sskt->ytls->trace) {
+        SSL_CTX_set_msg_callback(sskt->ytls->ctx, ssl_tls_trace);
+        SSL_CTX_set_msg_callback_arg(sskt->ytls->ctx, sskt->ytls);
+    } else {
+        SSL_CTX_set_msg_callback(sskt->ytls->ctx, 0);
+    }
 }
 
 /***************************************************************************
