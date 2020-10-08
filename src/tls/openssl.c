@@ -157,6 +157,71 @@ BOOL __initialized__ = FALSE;
 /***************************************************************************
  *
  ***************************************************************************/
+static const char *ssl_msg_type(int ssl_ver, int msg)
+{
+    if(ssl_ver == SSL3_VERSION_MAJOR) {
+        switch(msg) {
+            case SSL3_MT_HELLO_REQUEST:
+                return "Hello request";
+            case SSL3_MT_CLIENT_HELLO:
+                return "Client hello";
+            case SSL3_MT_SERVER_HELLO:
+                return "Server hello";
+            case SSL3_MT_NEWSESSION_TICKET:
+                return "Newsession Ticket";
+            case SSL3_MT_CERTIFICATE:
+                return "Certificate";
+            case SSL3_MT_SERVER_KEY_EXCHANGE:
+                return "Server key exchange";
+            case SSL3_MT_CLIENT_KEY_EXCHANGE:
+                return "Client key exchange";
+            case SSL3_MT_CERTIFICATE_REQUEST:
+                return "Request CERT";
+            case SSL3_MT_SERVER_DONE:
+                return "Server finished";
+            case SSL3_MT_CERTIFICATE_VERIFY:
+                return "CERT verify";
+            case SSL3_MT_FINISHED:
+                return "Finished";
+            case SSL3_MT_CERTIFICATE_STATUS:
+                return "Certificate Status";
+            case SSL3_MT_ENCRYPTED_EXTENSIONS:
+                return "Encrypted Extensions";
+            case SSL3_MT_END_OF_EARLY_DATA:
+                return "End of early data";
+            case SSL3_MT_KEY_UPDATE:
+                return "Key update";
+            case SSL3_MT_NEXT_PROTO:
+                return "Next protocol";
+            case SSL3_MT_MESSAGE_HASH:
+                return "Message hash";
+        }
+    }
+    return "Unknown";
+}
+
+static const char *tls_rt_type(int type)
+{
+    switch(type) {
+    case SSL3_RT_HEADER:
+        return "TLS header";
+    case SSL3_RT_CHANGE_CIPHER_SPEC:
+        return "TLS change cipher";
+    case SSL3_RT_ALERT:
+        return "TLS alert";
+    case SSL3_RT_HANDSHAKE:
+        return "TLS handshake";
+    case SSL3_RT_APPLICATION_DATA:
+        return "TLS app data";
+    default:
+        return "TLS Unknown";
+    }
+}
+
+/*
+ *  Our callback from the SSL/TLS layers.
+ *  Copied from curl
+ */
 PRIVATE void ssl_tls_trace(
     int direction,
     int ssl_ver,
@@ -167,9 +232,84 @@ PRIVATE void ssl_tls_trace(
     void *userp
 )
 {
-    log_debug_dump(direction?LOG_DUMP_OUTPUT:LOG_DUMP_INPUT, buf, len,
-        "%s ssl_ver %d, content_type %d", direction?"===>":"<===", ssl_ver, content_type
-    );
+    char unknown[32];
+    const char *verstr = NULL;
+
+    switch(ssl_ver) {
+    case SSL2_VERSION:
+        verstr = "SSLv2";
+        break;
+    case SSL3_VERSION:
+        verstr = "SSLv3";
+        break;
+    case TLS1_VERSION:
+        verstr = "TLSv1.0";
+        break;
+    case TLS1_1_VERSION:
+        verstr = "TLSv1.1";
+        break;
+    case TLS1_2_VERSION:
+        verstr = "TLSv1.2";
+        break;
+    case TLS1_3_VERSION:
+        verstr = "TLSv1.3";
+        break;
+    case 0:
+        break;
+    default:
+        snprintf(unknown, sizeof(unknown), "(%x)", ssl_ver);
+        verstr = unknown;
+        break;
+    }
+
+    /* Log progress for interesting records only (like Handshake or Alert), skip
+     * all raw record headers (content_type == SSL3_RT_HEADER or ssl_ver == 0).
+     * For TLS 1.3, skip notification of the decrypted inner Content Type.
+     */
+    if(ssl_ver
+#ifdef SSL3_RT_INNER_CONTENT_TYPE
+         && content_type != SSL3_RT_INNER_CONTENT_TYPE
+#endif
+        ) {
+        const char *msg_name, *tls_rt_name;
+        int msg_type;
+
+        /* the info given when the version is zero is not that useful for us */
+
+        ssl_ver >>= 8; /* check the upper 8 bits only below */
+
+        /* SSLv2 doesn't seem to have TLS record-type headers, so OpenSSL
+         * always pass-up content-type as 0. But the interesting message-type
+         * is at 'buf[0]'.
+         */
+        if(ssl_ver == SSL3_VERSION_MAJOR && content_type)
+            tls_rt_name = tls_rt_type(content_type);
+        else
+            tls_rt_name = "";
+
+        if(content_type == SSL3_RT_CHANGE_CIPHER_SPEC) {
+            msg_type = *(char *)buf;
+            msg_name = "Change cipher spec";
+        }
+        else if(content_type == SSL3_RT_ALERT) {
+            msg_type = (((char *)buf)[0] << 8) + ((char *)buf)[1];
+            msg_name = SSL_alert_desc_string_long(msg_type);
+        }
+        else {
+            msg_type = *(char *)buf;
+            msg_name = ssl_msg_type(ssl_ver, msg_type);
+        }
+
+        log_debug_dump(direction?LOG_DUMP_OUTPUT:LOG_DUMP_INPUT, buf, len,
+            "%s (%s), %s, %s (%d)",
+            verstr, direction?"OUT":"IN",
+            tls_rt_name, msg_name, msg_type
+        );
+    } else {
+        log_debug_dump(direction?LOG_DUMP_OUTPUT:LOG_DUMP_INPUT, buf, len,
+            "%s ssl_ver %d, content_type %d", direction?"OUT":"IN", ssl_ver, content_type
+        );
+    }
 }
 
 /***************************************************************************
@@ -246,6 +386,13 @@ PRIVATE hytls init(
     ytls->trace = kw_get_bool(jn_config, "trace", 0, KW_WILD_NUMBER);
 
     if(ytls->trace) {
+        log_info(0,
+            "gobj",         "%s", __FILE__,
+            "function",     "%s", __FUNCTION__,
+            "msgset",       "%s", MSGSET_INFO,
+            "msg",          "%s", ytls->trace?"openssl trace ON":"openssl trace OFF",
+            NULL
+        );
         SSL_CTX_set_msg_callback(ytls->ctx, ssl_tls_trace);
         SSL_CTX_set_msg_callback_arg(ytls->ctx, ytls);
     }
@@ -423,6 +570,20 @@ PRIVATE hsskt new_secure_filter(
         return 0;
     }
 
+    if(ytls->trace) {
+        log_info(0,
+            "gobj",         "%s", __FILE__,
+            "function",     "%s", __FUNCTION__,
+            "msgset",       "%s", MSGSET_INFO,
+            "msg",          "%s", ytls->trace?"openssl trace ON":"openssl trace OFF",
+            NULL
+        );
+        SSL_set_msg_callback(sskt->ssl, ssl_tls_trace);
+        SSL_set_msg_callback_arg(sskt->ssl, ytls);
+    } else {
+        SSL_set_msg_callback(sskt->ssl, 0);
+    }
+
     if(ytls->server) {
         SSL_set_accept_state(sskt->ssl);
     } else {
@@ -476,10 +637,23 @@ PRIVATE void set_trace(hsskt sskt_, BOOL set)
     sskt->ytls->trace = set?TRUE:FALSE;
 
     if(sskt->ytls->trace) {
+        log_info(0,
+            "gobj",         "%s", __FILE__,
+            "function",     "%s", __FUNCTION__,
+            "msgset",       "%s", MSGSET_INFO,
+            "msg",          "%s", set?"SET openssl trace ON":"SET openssl trace OFF",
+            NULL
+        );
         SSL_CTX_set_msg_callback(sskt->ytls->ctx, ssl_tls_trace);
         SSL_CTX_set_msg_callback_arg(sskt->ytls->ctx, sskt->ytls);
+        if(sskt->ssl) {
+            SSL_set_msg_callback(sskt->ssl, ssl_tls_trace);
+            SSL_set_msg_callback_arg(sskt->ssl, sskt->ytls);
+        }
+
     } else {
         SSL_CTX_set_msg_callback(sskt->ytls->ctx, 0);
+        SSL_set_msg_callback(sskt->ssl, 0);
     }
 }
 
@@ -490,7 +664,7 @@ PRIVATE int do_handshake(hsskt sskt_)
 {
     sskt_t *sskt = sskt_;
 
-    if(sskt->ytls->trace) {// TODO quita este tipo de trace cuando esté todo bien probado.
+    if(sskt->ytls->trace) {
         trace_msg("------- do_handshake");
     }
 
