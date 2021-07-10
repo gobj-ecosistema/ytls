@@ -6,9 +6,7 @@
  *          Copyright (c) 2018 Niyamaka.
  *          All Rights Reserved.
  ****************************************************************************/
-
-#ifndef _C_YTLS_H
-#define _C_YTLS_H 1
+#pragma once
 
 #include <ghelpers.h>
 
@@ -177,6 +175,4 @@ PUBLIC int ytls_flush(hytls ytls, hsskt sskt);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif
