@@ -39,7 +39,7 @@ PUBLIC hytls ytls_init(
      *--------------------------------*/
     api_tls_t *api_tls = 0;
 
-    const char *tls_library = kw_get_str(jn_config, "library", "openssl", 0);
+    const char *tls_library = kw_get_str(jn_config, "library", "openssl", KW_REQUIRED);
     SWITCHS(tls_library) {
         CASES("openssl")
             api_tls = openssl_api_tls();
