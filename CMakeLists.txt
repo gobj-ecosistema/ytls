@@ -13,17 +13,13 @@ set(LIB_DEST_DIR ${CMAKE_INSTALL_PREFIX}/lib)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -std=c99")
 
-if(CYGWIN)
-  add_definitions(-D__CYGWIN__)
-endif()
-
 if(CMAKE_BUILD_TYPE MATCHES Debug)
   add_definitions(-DDEBUG)
   option(SHOWNOTES "Show preprocessor notes" OFF)
 
   if(CMAKE_COMPILER_IS_GNUCC)
     # GCC specific debug options
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g3 -ggdb")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g3 -ggdb3 -gdwarf-2")
     set(AVOID_VERSION -avoid-version)
   endif(CMAKE_COMPILER_IS_GNUCC)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
