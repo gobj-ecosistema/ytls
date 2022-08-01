@@ -6,9 +6,6 @@
  *          Copyright (c) 2018 Niyamaka.
  *          All Rights Reserved.
 ***********************************************************************/
-#ifdef __linux__
-    #include <dlfcn.h>
-#endif
 #include "ytls.h"
 #include "tls/openssl.h"
 
