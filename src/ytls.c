@@ -6,7 +6,9 @@
  *          Copyright (c) 2018 Niyamaka.
  *          All Rights Reserved.
 ***********************************************************************/
-#include <dlfcn.h>
+#ifdef __linux__
+    #include <dlfcn.h>
+#endif
 #include "ytls.h"
 #include "tls/openssl.h"
 
@@ -192,4 +194,3 @@ PUBLIC int ytls_flush(hytls ytls, hsskt sskt)
     api_tls_t *api_tls = ((__ytls_t__ *)ytls)->api_tls;
     return api_tls->flush(sskt);
 }
-
