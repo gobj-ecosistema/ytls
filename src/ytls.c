@@ -116,7 +116,7 @@ PUBLIC hsskt ytls_new_secure_filter(
 PUBLIC void ytls_shutdown(hytls ytls, hsskt sskt)
 {
     api_tls_t *api_tls = ((__ytls_t__ *)ytls)->api_tls;
-    return api_tls->shutdown(sskt);
+    api_tls->shutdown(sskt);
 }
 
 /***************************************************************************
@@ -125,7 +125,7 @@ PUBLIC void ytls_shutdown(hytls ytls, hsskt sskt)
 PUBLIC void ytls_free_secure_filter(hytls ytls, hsskt sskt)
 {
     api_tls_t *api_tls = ((__ytls_t__ *)ytls)->api_tls;
-    return api_tls->free_secure_filter(sskt);
+    api_tls->free_secure_filter(sskt);
 }
 
 /***************************************************************************
@@ -180,7 +180,7 @@ PUBLIC const char *ytls_get_last_error(hytls ytls, hsskt sskt)
 PUBLIC void ytls_set_trace(hytls ytls, hsskt sskt, BOOL set)
 {
     api_tls_t *api_tls = ((__ytls_t__ *)ytls)->api_tls;
-    return api_tls->set_trace(sskt, set);
+    api_tls->set_trace(sskt, set);
 }
 
 /***************************************************************************
