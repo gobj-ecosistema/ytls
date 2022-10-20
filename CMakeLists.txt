@@ -17,6 +17,11 @@ if(LINUX)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 endif()
 
+IF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
+ELSE()
+  add_definitions(-DNOT_INCLUDE_LIBUNWIND=1)
+ENDIF()
+
 if(WIN32)
   add_definitions(-DNOT_INCLUDE_LIBUNWIND)
 endif()
