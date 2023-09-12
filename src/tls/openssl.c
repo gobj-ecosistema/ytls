@@ -64,6 +64,7 @@ socket write of encrypted data.
 
 
 ***********************************************************************/
+#define OPENSSL_API_COMPAT 30100
 #include <openssl/ssl.h>
 #include <openssl/engine.h>
 #include <openssl/rand.h>
@@ -326,10 +327,7 @@ PRIVATE hytls init(
     if(!__initialized__) {
         __initialized__ = TRUE;
         SSL_library_init();
-        SSL_load_error_strings();
-        //ERR_load_BIO_strings();
         OpenSSL_add_all_algorithms();
-        ERR_load_crypto_strings();
     }
     const SSL_METHOD *method = 0;
     if(server) {
@@ -497,12 +495,6 @@ PRIVATE void cleanup(hytls ytls_)
     /* Removes all digests and ciphers */
     EVP_cleanup();
 
-    /* if you omit the next, a small leak may be left when you make use of the BIO (low level API) for e.g. base64 transformations */
-    CRYPTO_cleanup_all_ex_data();
-
-    /* Remove error strings */
-    ERR_free_strings();
-
     gbmem_free(ytls);
 }
 
@@ -511,11 +503,7 @@ PRIVATE void cleanup(hytls ytls_)
  ***************************************************************************/
 PRIVATE const char *version(hytls ytls)
 {
-#if (OPENSSL_VERSION_NUMBER >= 0x10100001L)
     return OpenSSL_version(OPENSSL_VERSION);
-#else
-    return SSLeay_version(SSLEAY_VERSION);
-#endif
 }
 
 /***************************************************************************
