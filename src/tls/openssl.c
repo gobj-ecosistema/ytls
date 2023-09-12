@@ -327,7 +327,7 @@ PRIVATE hytls init(
         __initialized__ = TRUE;
         SSL_library_init();
         SSL_load_error_strings();
-        ERR_load_BIO_strings();
+        //ERR_load_BIO_strings();
         OpenSSL_add_all_algorithms();
         ERR_load_crypto_strings();
     }
